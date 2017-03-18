@@ -4,8 +4,13 @@ import getopt
 import thread
 import threading
 import subprocess
+from subprocess import *
+import base64
 
-#Host ID FORMAT "Host:Ports(Port Port Port):connections" > export to log eventually
+#Host ID FORMAT "Host:connections" > export to log eventually
+#actual format : array['host:connections',etc]
+#              :
+#              :
 
 whitelistunpared = ''
 blacklistunpared = ''
@@ -17,26 +22,33 @@ listenerthread = []
 
 notifications = 0
 
-
+foreignaddr = []
 
 
 def listener_menu():
     #Going to add more here
     print "Booted into listener"
 def proccess_results(input):
-    lol = "lol asdf"
-    command = 'echo "%s" | grep -e tcp -e udp | cut -c 22-70' % lol
-    print command
-    #output = subprocess.check_output(['echo lol asdf | grep -e tcp -e udp | cut -c 22-70'])
-    output = os.system('echo lol asdf | grep -e tcp -e udp | cut -c 22-70')
+    
+    p = Popen(["grep -e tcp -e udp"], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+    stdout_data = p.communicate(input=input)[0]
+    p = Popen(["cut -c 22-70"], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+    stdout_data = p.communicate(input=stdout_data)[0]
+    p = Popen(["cut -c 1-42"], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+    stdout_data = p.communicate(input=stdout_data)[0]
+    
+    
+    foreignaddr = stdout_data.split()
+
+    output=foreignaddr
     return output
 def listen(som,sun):
     result = subprocess.check_output(['netstat', '-an'])
-    print proccess_results(result)
+    proccess_results(result)
 
 
 #print result.communicate()
-    
+
 #while 1:
 #print "testties"
 #return
