@@ -4,6 +4,7 @@ blklocation="$(pwd)/blacklist.txt"
 
 iswhitelist=0
 isblacklist=0
+notifications=0
 localinterface="en0"
 
 connections=0
@@ -14,6 +15,8 @@ highestip="None"
 # Capture format "Host|To|port" Arrary
 # Explicit data format "Host|out|in|connections" Array
 # echo ${array[0]}
+
+# BlockList format "host|BlockPort"
 
 white="\033[1;37m"
 grey="\033[0;37m"
@@ -32,13 +35,14 @@ transparent="\e[0m"
 function banner {
 
 
-
+ printf "${red}"
  sleep 0.05 && echo -e "   █████╗ ███╗   ██╗████████╗██╗    ████████╗██████╗  █████╗  ██████╗███████╗██████╗  "
  sleep 0.05 && echo -e "  ██╔══██╗████╗  ██║╚══██╔══╝██║    ╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗ "
  sleep 0.05 && echo -e "  ███████║██╔██╗ ██║   ██║   ██║       ██║   ██████╔╝███████║██║     █████╗  ██████╔╝ "
  sleep 0.05 && echo -e "  ██╔══██║██║╚██╗██║   ██║   ██║       ██║   ██╔══██╗██╔══██║██║     ██╔══╝  ██╔══██╗ "
  sleep 0.05 && echo -e "  ██║  ██║██║ ╚████║   ██║   ██║       ██║   ██║  ██║██║  ██║╚██████╗███████╗██║  ██║ "
  sleep 0.05 && echo -e "  ╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚═╝       ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚══════╝╚═╝  ╚═╝ "
+ printf "${transparent}"
  echo ""
 
 }
@@ -65,11 +69,13 @@ function init {
   isblacklist=0
  fi
 
+
  if [ "$iswhitelist" -eq "1" ]; then
   echo "Found Whitelist.txt! loading to memory"
  else
   echo "No Whitelist.txt found creating a new one"
-  echo "" > whitelist.txt
+  echo "127.0.0.1" >> whitelist.txt
+  echo $local >> whitelist.txt
  fi
 
  if [ "$isblacklist" -eq "1" ]; then
@@ -83,6 +89,15 @@ function init {
   load_data
 
  fi
+ if [[  $(command -v iptables) == '/sbin/iptables' ]]; then
+   blines1 = ${#blacklist[@]}
+   for (( i = 0 ; i <= $blines1 ; i++))
+   do
+    iptables -A INPUT -s ${blacklist[i]} -j DROP
+   done
+ fi
+
+
 }
 function get_local_ip {
  local=$(ifconfig $localinterface | grep "inet" | cut -c 7-15 | tr " " "|")
@@ -99,7 +114,7 @@ function load_data {
  do
   whitelist[i]=$(sed -n "$i"p $whtlocation)
  done
-
+#echo ${whitelist[*]}
  for (( i = 0 ; i <= blines ; i++))
  do
   blacklist[i]=$(sed -n "$i"p $blklocation)
@@ -107,16 +122,20 @@ function load_data {
 
 }
 function listen {
- echo "taking capture"
- netstat -an | grep -e tcp -e udp | cut -c 22-70 >> tmp/capturetmp.txt
+#echo ${whitelist[*]}
+ python listener.py -a "${whitelist[*]}" -b "${blacklist[*]}" -n $notifications
 
- echo "capture taken now proccessing"
- proccess_capture
- printf "$blue>proccessing complete $transparent\n"
+
+#echo "taking capture"
+#netstat -an | grep -e tcp -e udp | cut -c 22-70 >> tmp/capturetmp.txt
+
+#echo "capture taken now proccessing"
+#proccess_capture
+#printf "$blue>proccessing complete $transparent\n"
 
 
 }
-function proccess_capture {
+function proccess_capture { #Deprecated
  lh=$(cat tmp/capturetmp.txt | wc -l | cut -c 6-11)
 
  for (( i = 0 ; i <= lh ; i++))
@@ -133,17 +152,19 @@ function proccess_capture {
  rm tmp/capturetmp.txt
 }
 function status {
- banner
- printf "$red Next Capture in 5 seconds $transparent\n"
- sleep 5
+#banner
+#printf "$red Next Capture in 5 seconds $transparent\n"
+sleep 5
 
 }
 function menu {
  echo ""
  banner
+ printf "${blue}"
  printf "      [1] Start Anti Tracer\n"
  printf "      [2] Manage Whitelist/Blacklist ips\n"
  printf "      [3] exit\n"
+ printf "${transparent}"
  printf "Enter one of the above and press [Enter]"
  read Menunumb
  if [ "$Menunumb" -eq "1" ]; then
@@ -170,6 +191,4 @@ do
 done
 
 
-
-
-############################## END OF MAIN ##############################
+############################## END OF MAIN #############################
