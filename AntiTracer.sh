@@ -89,13 +89,18 @@ function init {
   load_data
 
  fi
+ blacklist_drop
+}
+function blacklist_drop {
+
  if [[  $(command -v iptables) == '/sbin/iptables' ]]; then
-   blines1 = ${#blacklist[@]}
-   for (( i = 0 ; i <= $blines1 ; i++))
-   do
-    iptables -A INPUT -s ${blacklist[i]} -j DROP
-   done
- fi
+  blines1=${#blacklist[@]}
+  for (( i = 0 ; i <= $blines1 ; i++))
+  do
+   iptables -A INPUT -s ${blacklist[i]} -j DROP
+  done
+  fi
+
 
 
 }
@@ -115,15 +120,26 @@ function load_data {
   whitelist[i]=$(sed -n "$i"p $whtlocation)
  done
 #echo ${whitelist[*]}
- for (( i = 0 ; i <= blines ; i++))
+ for (( v = 0 ; v <= blines ; v++))
  do
-  blacklist[i]=$(sed -n "$i"p $blklocation)
+  blacklist[v]=$(sed -n "$v"p $blklocation)
  done
 
+##### Separate blacklist #####
+ for (( k = 0; k <= 25; k++))
+ do
+                                                            #awk -F '[ \t]+|/' '{print $1}
+  watchlist[k]=$(echo $blacklist[k]}| grep watch )
+
+  blacklist_drop[k]=$(echo ${blacklist[k]} | grep drop | awk -F '[ \t]+|/' '{print $1}' )
+ done
+ echo "DROP: ${blacklist_drop[*]}"
+ echo "Watch: ${watchlist[*]}"
+ echo "Full Blacklist: ${blacklist[*]}"
 }
 function listen {
 #echo ${whitelist[*]}
- python listener.py -a "${whitelist[*]}" -b "${blacklist[*]}" -n $notifications
+ python listener.py -a "${whitelist[*]}" -b "${watchlist[*]}" -n $notifications
 
 
 #echo "taking capture"
